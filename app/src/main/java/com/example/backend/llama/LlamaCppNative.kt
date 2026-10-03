@@ -1,5 +1,7 @@
 package com.example.backend.llama
 
+import android.util.Log
+
 /**
  * JNI bindings for the native on-device llama.cpp C++ inference runtime.
  */
@@ -14,45 +16,72 @@ class LlamaCppNative {
     }
 
     companion object {
+        private const val TAG = "LlamaCppNative"
         private val isLibraryLoaded: Boolean
 
         init {
-            isLibraryLoaded = try {
+            var loaded = false
+            try {
+                // Load OpenMP runtime first if available
+                try {
+                    System.loadLibrary("omp")
+                    Log.i(TAG, "libomp.so loaded successfully.")
+                } catch (e: Throwable) {
+                    Log.w(TAG, "libomp.so direct load note: ${e.message}")
+                }
+
+                // Load native llama-android bridge
                 System.loadLibrary("llama-android")
-                true
-            } catch (_: Throwable) {
-                false
+                Log.i(TAG, "libllama-android.so loaded successfully.")
+                loaded = true
+            } catch (t: Throwable) {
+                Log.e(TAG, "FATAL: Failed to load native library libllama-android.so", t)
+                loaded = false
             }
+            isLibraryLoaded = loaded
         }
 
         fun isAvailable(): Boolean = isLibraryLoaded
     }
 
     fun init(): Boolean {
+        Log.i(TAG, "init() called. isLibraryLoaded=$isLibraryLoaded")
         return if (isLibraryLoaded) {
             try {
-                nativeInit()
-            } catch (_: Throwable) {
+                val res = nativeInit()
+                Log.i(TAG, "nativeInit returned: $res")
+                res
+            } catch (t: Throwable) {
+                Log.e(TAG, "nativeInit threw exception", t)
                 false
             }
         } else false
     }
 
     fun loadModel(modelPath: String, threads: Int, contextLength: Int): Boolean {
-        return if (isLibraryLoaded) {
-            try {
-                nativeLoadModel(modelPath, threads, contextLength)
-            } catch (_: Throwable) {
-                false
-            }
-        } else false
+        Log.i(TAG, "loadModel(path=$modelPath, threads=$threads, ctx=$contextLength) called.")
+        if (!isLibraryLoaded) {
+            Log.e(TAG, "loadModel aborted: native library is not loaded.")
+            return false
+        }
+        return try {
+            val res = nativeLoadModel(modelPath, threads, contextLength)
+            Log.i(TAG, "nativeLoadModel returned: $res")
+            res
+        } catch (t: Throwable) {
+            Log.e(TAG, "nativeLoadModel crashed", t)
+            false
+        }
     }
 
     fun unloadModel() {
+        Log.i(TAG, "unloadModel() called.")
         if (isLibraryLoaded) {
             try {
                 nativeUnloadModel()
-            } catch (_: Throwable) {}
+            } catch (t: Throwable) {
+                Log.e(TAG, "nativeUnloadModel failed", t)
+            }
         }
     }
 
@@ -60,17 +89,21 @@ class LlamaCppNative {
         return if (isLibraryLoaded) {
             try {
                 nativeIsLoaded()
-            } catch (_: Throwable) {
+            } catch (t: Throwable) {
+                Log.e(TAG, "nativeIsLoaded failed", t)
                 false
             }
         } else false
     }
 
     fun stopGeneration() {
+        Log.i(TAG, "stopGeneration() called.")
         if (isLibraryLoaded) {
             try {
                 nativeStopGeneration()
-            } catch (_: Throwable) {}
+            } catch (t: Throwable) {
+                Log.e(TAG, "nativeStopGeneration failed", t)
+            }
         }
     }
 
@@ -78,7 +111,8 @@ class LlamaCppNative {
         return if (isLibraryLoaded) {
             try {
                 nativeTokenize(text)
-            } catch (_: Throwable) {
+            } catch (t: Throwable) {
+                Log.e(TAG, "nativeTokenize failed", t)
                 (text.length / 4).coerceAtLeast(1)
             }
         } else (text.length / 4).coerceAtLeast(1)
@@ -90,10 +124,16 @@ class LlamaCppNative {
         maxTokens: Int,
         callback: TokenCallback
     ) {
+        Log.i(TAG, "generateStream called. isLibraryLoaded=$isLibraryLoaded, prompt length=${prompt.length}")
         if (isLibraryLoaded) {
             try {
                 nativeGenerateStream(prompt, temperature, maxTokens, callback)
-            } catch (_: Throwable) {}
+                Log.i(TAG, "nativeGenerateStream completed.")
+            } catch (t: Throwable) {
+                Log.e(TAG, "nativeGenerateStream crashed", t)
+            }
+        } else {
+            Log.e(TAG, "generateStream cannot execute: native library not loaded.")
         }
     }
 

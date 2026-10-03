@@ -1,5 +1,6 @@
 package com.example.backend.llama
 
+import android.util.Log
 import com.example.backend.InferenceBackend
 import com.example.data.model.ModelCapability
 import com.example.data.model.ModelMetadata
@@ -7,7 +8,6 @@ import com.example.engine.GenerationChunk
 import com.example.engine.ModelLoadingState
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.awaitClose
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.flow
@@ -23,6 +23,10 @@ import java.util.concurrent.atomic.AtomicBoolean
 class LlamaCppBackend(
     private val nativeBridge: LlamaCppNative = LlamaCppNative()
 ) : InferenceBackend {
+
+    companion object {
+        private const val TAG = "LlamaCppBackend"
+    }
 
     override val name: String = "llama.cpp (On-Device Native Engine)"
 
@@ -40,6 +44,7 @@ class LlamaCppBackend(
     private val isCancelled = AtomicBoolean(false)
 
     init {
+        Log.i(TAG, "Initializing LlamaCppBackend...")
         nativeBridge.init()
     }
 
@@ -76,16 +81,19 @@ class LlamaCppBackend(
             )
         )
 
+        Log.i(TAG, "loadModel invoked for: ${metadata.filePath} (threads: $threads, ctx: $contextLength)")
+
         val success = withContext(Dispatchers.IO) {
             if (LlamaCppNative.isAvailable()) {
                 nativeBridge.loadModel(metadata.filePath, threads, contextLength)
             } else {
-                // Mock success in non-Android unit test environment
-                true
+                Log.e(TAG, "Native llama-android library is not available. Model loading aborted.")
+                false
             }
         }
 
         if (!success) {
+            Log.e(TAG, "Native model loading failed for: ${metadata.filePath}")
             emit(
                 ModelLoadingState(
                     progress = 0f,
@@ -93,7 +101,7 @@ class LlamaCppBackend(
                     totalBytes = totalBytes,
                     throughputMBps = 0,
                     estimatedRemainingSeconds = 0,
-                    statusMessage = "Failed to load model file into native llama.cpp runtime",
+                    statusMessage = "Failed to load model file into native llama.cpp runtime (check logcat)",
                     isComplete = false
                 )
             )
@@ -102,6 +110,7 @@ class LlamaCppBackend(
 
         isLoaded.set(true)
         loadedModel = metadata
+        Log.i(TAG, "Model successfully loaded into native runtime: ${metadata.name}")
 
         emit(
             ModelLoadingState(
@@ -117,6 +126,7 @@ class LlamaCppBackend(
     }
 
     override fun unloadModel() {
+        Log.i(TAG, "unloadModel invoked")
         nativeBridge.unloadModel()
         isLoaded.set(false)
         loadedModel = null
@@ -141,6 +151,8 @@ class LlamaCppBackend(
         var count = 0
         val startTime = System.currentTimeMillis()
 
+        Log.i(TAG, "generateStream started for prompt (len=${prompt.length}): '${prompt.take(60)}...'")
+
         withContext(Dispatchers.IO) {
             if (LlamaCppNative.isAvailable()) {
                 nativeBridge.generateStream(
@@ -149,6 +161,7 @@ class LlamaCppBackend(
                     maxTokens = maxTokens,
                     callback = { tokenPiece ->
                         if (isCancelled.get() || !isActive) {
+                            Log.i(TAG, "Generation callback: cancelled or inactive")
                             false
                         } else {
                             accumulated += tokenPiece
@@ -170,34 +183,31 @@ class LlamaCppBackend(
                     }
                 )
             } else {
-                // Non-Android host JVM unit test environment
-                val mockPieces = listOf("A ", "CPU ", "executes ", "instructions.")
-                for (piece in mockPieces) {
-                    if (isCancelled.get() || !isActive) break
-                    accumulated += piece
-                    count++
-                    trySend(
-                        GenerationChunk(
-                            token = piece,
-                            accumulatedText = accumulated,
-                            currentTokensCount = count,
-                            tokenRatePerSec = 40,
-                            isDone = false
-                        )
+                Log.e(TAG, "Cannot generate: Native library is unavailable.")
+                trySend(
+                    GenerationChunk(
+                        token = "",
+                        accumulatedText = "Error: Native llama.cpp inference engine is not available on this device.",
+                        currentTokensCount = 0,
+                        tokenRatePerSec = 0,
+                        isDone = true
                     )
-                }
+                )
+                channel.close()
+                return@withContext
             }
         }
 
         val totalElapsedSec = (System.currentTimeMillis() - startTime) / 1000.0
         val finalRate = if (totalElapsedSec > 0.05) (count / totalElapsedSec).toInt() else 0
 
-        // If the real model produced zero tokens, emit an error indicator rather than fabricating a response
+        Log.i(TAG, "Generation loop completed. Total tokens: $count, elapsed: ${totalElapsedSec}s, rate: $finalRate t/s")
+
         val finalAccumulated = if (count == 0 && accumulated.isEmpty()) {
             if (isCancelled.get()) {
                 "Generation stopped."
             } else {
-                "Inference completed with no output tokens generated."
+                "Model generated no output."
             }
         } else {
             accumulated
@@ -215,11 +225,13 @@ class LlamaCppBackend(
         channel.close()
 
         awaitClose {
+            Log.i(TAG, "generateStream flow closed.")
             nativeBridge.stopGeneration()
         }
     }.flowOn(Dispatchers.IO)
 
     override fun stopGeneration() {
+        Log.i(TAG, "stopGeneration invoked.")
         isCancelled.set(true)
         nativeBridge.stopGeneration()
     }

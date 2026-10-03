@@ -33,6 +33,12 @@ android {
     }
   }
 
+  sourceSets {
+    getByName("main") {
+      jniLibs.srcDirs("src/main/jniLibs")
+    }
+  }
+
   signingConfigs {
     create("release") {
       val keystorePath = System.getenv("KEYSTORE_PATH") ?: "${rootDir}/my-upload-key.jks"

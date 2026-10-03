@@ -87,6 +87,17 @@ class LocalAIViewModel @JvmOverloads constructor(
 
     init {
         refreshTelemetry()
+        // If an active model was previously chosen, load it into volatile RAM in the background
+        viewModelScope.launch {
+            val current = activeModel.value
+            if (current != null && !modelManager.engine.isModelLoaded()) {
+                val threads = appSettings.value.cpuThreads
+                val ctxLength = appSettings.value.contextLength
+                modelManager.loadModel(current.id, threads, ctxLength).collect { state ->
+                    _loadingState.value = state
+                }
+            }
+        }
     }
 
     fun refreshTelemetry() {
@@ -215,6 +226,29 @@ class LocalAIViewModel @JvmOverloads constructor(
             val maxTokens = appSettings.value.maxResponseTokens
             val hasImages = if (attachedImageUri != null) listOf(ByteArray(1)) else emptyList()
             val audioBytes = if (attachedAudioDuration != null) ByteArray(1) else null
+
+            // Ensure model is loaded in memory before generating
+            if (!modelManager.engine.isModelLoaded()) {
+                android.util.Log.i("LocalAIViewModel", "Active model ${active.name} is not loaded in RAM. Loading now...")
+                val threads = appSettings.value.cpuThreads
+                val ctxLength = appSettings.value.contextLength
+                var loadSuccess = false
+                modelManager.loadModel(active.id, threads, ctxLength).collect { state ->
+                    _loadingState.value = state
+                    if (state.isComplete) loadSuccess = true
+                }
+                if (!loadSuccess) {
+                    val errMsg = "Failed to load ${active.name} into device RAM. Please check storage & memory."
+                    val errUpdate = assistantMsg.copy(
+                        text = errMsg,
+                        isStreaming = false
+                    )
+                    conversationRepository.updateMessage(errUpdate)
+                    _isGenerating.value = false
+                    _currentStreamingMsgId.value = null
+                    return@launch
+                }
+            }
 
             modelManager.engine.generateStream(textToSend, hasImages, audioBytes, temp, maxTokens).collect { chunk ->
                 _currentTokensCount.value = chunk.currentTokensCount

@@ -191,6 +191,8 @@ class ModelManager(
             emit(state)
             if (state.isComplete) {
                 repository.updateModelStatus(modelId, ModelStatus.LOADED, isActive = true)
+            } else if (state.progress == 0f && state.statusMessage.contains("Failed", ignoreCase = true)) {
+                repository.updateModelStatus(modelId, ModelStatus.ERROR, isActive = false)
             }
         }
     }

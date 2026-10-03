@@ -35,8 +35,10 @@ class ConversationRepository(private val context: Context) {
                 val obj = array.getJSONObject(i)
                 val text = obj.optString("text", "")
                 
-                // Exclude any legacy mock responses
-                if (text.contains("processed your query locally using Local Model", ignoreCase = true)) {
+                // Exclude any legacy mock responses or corrupt entries
+                if (text.contains("processed your query locally using Local Model", ignoreCase = true) ||
+                    text.contains("A CPU executes instructions", ignoreCase = true) ||
+                    (!obj.optBoolean("isUser", false) && text.isBlank())) {
                     continue
                 }
 
