@@ -1,0 +1,11 @@
+<resources>
+    <string name="app_name">Local AI</string>
+    <string name="tab_chat">Chat</string>
+    <string name="tab_models">Models</string>
+    <string name="tab_settings">Settings</string>
+    <string name="offline_privacy_guarantee">100% Offline · Zero Telemetry</string>
+    <string name="cloud_egress_footnote">Zero cloud egress · Compute stays on hardware</string>
+    <string name="npu_ready">NPU Ready</string>
+    <string name="sanctuary_sealed_title">Your sanctuary remains sealed</string>
+    <string name="sanctuary_sealed_desc">Weights are initialized strictly in volatile on-device RAM. No telemetry or conversational logs leave this phone.</string>
+</resources>

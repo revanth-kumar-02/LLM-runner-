@@ -1,0 +1,6 @@
+{
+  "name": "Local AI",
+  "description": "Run Large Language Models locally and completely offline on your device.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

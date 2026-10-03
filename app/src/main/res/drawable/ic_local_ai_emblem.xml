@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="100dp"
+    android:height="100dp"
+    android:viewportWidth="100"
+    android:viewportHeight="100">
+    <!-- Rounded Background Container -->
+    <path
+        android:pathData="M28,0 L72,0 A28,28 0 0 1 100,28 L100,72 A28,28 0 0 1 72,100 L28,100 A28,28 0 0 1 0,72 L0,28 A28,28 0 0 1 28,0 Z"
+        android:fillColor="#F4ECE9" />
+    <!-- Outer Orbit Ring with gap -->
+    <path
+        android:pathData="M 71.5,50 A 21.5,21.5 0 1,1 50,28.5"
+        android:strokeColor="#C47B7B"
+        android:strokeWidth="4.5"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000" />
+    <path
+        android:pathData="M 71.5,50 A 21.5,21.5 0 0,1 65,64"
+        android:strokeColor="#C47B7B"
+        android:strokeWidth="4.5"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000" />
+    <!-- Center Core -->
+    <path
+        android:pathData="M 50,40 A 10,10 0 1,0 50,60 A 10,10 0 1,0 50,40 Z"
+        android:fillColor="#C47B7B" />
+    <!-- Top Satellite Dot -->
+    <path
+        android:pathData="M 50,23.5 A 4.5,4.5 0 1,0 50,32.5 A 4.5,4.5 0 1,0 50,23.5 Z"
+        android:fillColor="#E8927C" />
+    <!-- Bottom Right Satellite Dot -->
+    <path
+        android:pathData="M 68,56.5 A 3.5,3.5 0 1,0 68,63.5 A 3.5,3.5 0 1,0 68,56.5 Z"
+        android:fillColor="#D98270" />
+</vector>

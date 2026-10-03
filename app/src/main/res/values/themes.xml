@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- Android platform Material Light parent provides standard windowLightStatusBar/windowLightNavigationBar
+         attributes so enableEdgeToEdge() can render transparent system bars with
+         dark (charcoal) icons over the warm ivory canvas. -->
+    <style name="Theme.MyApplication" parent="android:Theme.Material.Light.NoActionBar">
+        <!-- Force app background and window background to warm ivory so the system bar
+             decoration area (when drawn by the OS) matches before Compose takes over. -->
+        <item name="android:windowBackground">@color/canvas_surface</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightNavigationBar">true</item>
+    </style>
+</resources>

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Warm Sanctuary canvas — matches CanvasSurface in Color.kt (0xFFFEF8F6).
+         Referenced by android:windowBackground in themes.xml so the window
+         background is warm ivory before Compose renders, avoiding a grey flash. -->
+    <color name="canvas_surface">#FFFEF8F6</color>
+
+    <color name="purple_200">#FFBB86FC</color>
+    <color name="purple_500">#FF6200EE</color>
+    <color name="purple_700">#FF3700B3</color>
+    <color name="teal_200">#FF03DAC5</color>
+    <color name="teal_700">#FF018786</color>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+</resources>

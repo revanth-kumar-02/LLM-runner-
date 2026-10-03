@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Outer Orbit Arc -->
+    <path
+        android:pathData="M 77,54 A 23,23 0 1,1 54,31"
+        android:strokeColor="#C47B7B"
+        android:strokeWidth="4.8"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000" />
+    <path
+        android:pathData="M 77,54 A 23,23 0 0,1 70,68"
+        android:strokeColor="#C47B7B"
+        android:strokeWidth="4.8"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000" />
+    <!-- Center Core Dot -->
+    <path
+        android:pathData="M 54,43 A 11,11 0 1,0 54,65 A 11,11 0 1,0 54,43 Z"
+        android:fillColor="#C47B7B" />
+    <!-- Top Satellite Dot -->
+    <path
+        android:pathData="M 54,25 A 5,5 0 1,0 54,35 A 5,5 0 1,0 54,25 Z"
+        android:fillColor="#E8927C" />
+    <!-- Bottom Right Satellite Dot -->
+    <path
+        android:pathData="M 74,62 A 4,4 0 1,0 74,70 A 4,4 0 1,0 74,62 Z"
+        android:fillColor="#D98270" />
+</vector>
