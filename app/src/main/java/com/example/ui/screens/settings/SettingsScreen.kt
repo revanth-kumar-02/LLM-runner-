@@ -62,6 +62,7 @@ import com.example.data.model.AppSettings
 import com.example.data.model.HardwareTelemetry
 import com.example.data.model.ModelMetadata
 import com.example.ui.theme.CanvasSurface
+import com.example.ui.theme.DisabledWarmContent
 import com.example.ui.theme.OnPrimary
 import com.example.ui.theme.OnSurface
 import com.example.ui.theme.OnSurfaceVariant
@@ -88,7 +89,8 @@ fun SettingsScreen(
     onClearConversations: () -> Unit,
     onUpdateContextLength: (Int) -> Unit,
     onUpdateTemperature: (Float) -> Unit,
-    onToggleHistory: (Boolean) -> Unit
+    onToggleHistory: (Boolean) -> Unit,
+    onToggleThinking: (Boolean) -> Unit = {}
 ) {
     val scrollState = rememberScrollState()
     val context = LocalContext.current
@@ -98,6 +100,7 @@ fun SettingsScreen(
     var contextIndex by remember(settings.contextLength) { mutableIntStateOf(if (initialIdx != -1) initialIdx else 1) }
     var currentTemperature by remember(settings.temperature) { mutableStateOf(settings.temperature) }
     var historyEnabled by remember(settings.conversationHistoryEnabled) { mutableStateOf(settings.conversationHistoryEnabled) }
+    var thinkingEnabled by remember(settings.enableThinking) { mutableStateOf(settings.enableThinking) }
 
     val modelsMB = telemetry.modelsStorageBytes.toDouble() / (1024.0 * 1024.0)
     val chatsMB = telemetry.chatsStorageBytes.toDouble() / (1024.0 * 1024.0)
@@ -462,6 +465,45 @@ fun SettingsScreen(
                                 fontWeight = FontWeight.SemiBold
                             )
                         }
+                    }
+
+                    HorizontalDivider(modifier = Modifier.padding(horizontal = 18.dp), color = SurfaceContainerHigh, thickness = 1.dp)
+
+                    // Thinking / Reasoning Mode (Default: Disabled)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 18.dp, vertical = 14.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
+                            Text(
+                                text = "Thinking / Reasoning Mode",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = OnSurface,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Text(
+                                text = "Disable for direct answers without internal reasoning",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = OnSurfaceVariant
+                            )
+                        }
+
+                        Switch(
+                            checked = thinkingEnabled,
+                            onCheckedChange = {
+                                thinkingEnabled = it
+                                onToggleThinking(it)
+                            },
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = OnPrimary,
+                                checkedTrackColor = PrimaryDustyRose,
+                                uncheckedThumbColor = DisabledWarmContent,
+                                uncheckedTrackColor = SurfaceContainerHigh
+                            )
+                        )
                     }
                 }
             }

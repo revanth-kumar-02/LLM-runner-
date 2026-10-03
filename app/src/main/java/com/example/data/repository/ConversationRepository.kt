@@ -42,19 +42,20 @@ class ConversationRepository(private val context: Context) {
                     continue
                 }
 
-                val rate = if (obj.has("tokenRate") && !obj.isNull("tokenRate")) {
-                    val rawRate = obj.getString("tokenRate")
-                    if (rawRate.contains("38 t/s") || rawRate.contains("40 t/s")) null else rawRate
-                } else null
+                val cleanedText = if (text.contains("<think>")) {
+                    text.replace(Regex("<think>[\\s\\S]*?</think>"), "").trim()
+                } else {
+                    text
+                }
 
                 list.add(
                     ChatMessage(
                         id = obj.getString("id"),
                         isUser = obj.getBoolean("isUser"),
-                        text = text,
+                        text = cleanedText,
                         timestamp = obj.getString("timestamp"),
                         isStreaming = false,
-                        tokenRate = rate,
+                        tokenRate = null,
                         tokenCount = obj.optInt("tokenCount", 0),
                         modelName = obj.optString("modelName", ""),
                         codeSnippet = if (obj.has("codeSnippet") && !obj.isNull("codeSnippet")) obj.getString("codeSnippet") else null,

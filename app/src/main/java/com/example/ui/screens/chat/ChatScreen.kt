@@ -103,6 +103,7 @@ import com.example.ui.theme.SecondaryContainer
 import com.example.ui.theme.SecondaryCoralAccent
 import com.example.ui.theme.SecondaryFixed
 import com.example.ui.theme.SecondaryMutedCoral
+import com.example.ui.theme.StatusActiveGreen
 import com.example.ui.theme.SurfaceContainer
 import com.example.ui.theme.SurfaceContainerHigh
 import com.example.ui.theme.SurfaceContainerLow
@@ -250,52 +251,6 @@ fun ChatScreen(
             }
         }
 
-        // Interruption Pill when generating
-        AnimatedVisibility(visible = isGenerating) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 8.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Row(
-                    modifier = Modifier
-                        .clip(CircleShape)
-                        .background(SurfaceContainerLowest)
-                        .clickable { onStopGenerating() }
-                        .shadow(elevation = 8.dp, shape = CircleShape)
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(14.dp)
-                            .clip(RoundedCornerShape(3.dp))
-                            .background(ErrorRed)
-                    )
-                    Text(
-                        text = "Stop generating",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = OnSurface,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                    Box(
-                        modifier = Modifier
-                            .size(4.dp)
-                            .clip(CircleShape)
-                            .background(SurfaceContainerHigh)
-                    )
-                    Text(
-                        text = "$tokenCount tokens",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = OnSurfaceVariant,
-                        fontFamily = FontFamily.Monospace
-                    )
-                }
-            }
-        }
-
         // Bottom Floating Composer Capsule
         Column(
             modifier = Modifier.fillMaxWidth(),
@@ -311,14 +266,20 @@ fun ChatScreen(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
+                val statusDotColor = if (isGenerating) SecondaryMutedCoral else if (isModelActive) StatusActiveGreen else DisabledWarmContent
                 Box(
                     modifier = Modifier
                         .size(6.dp)
                         .clip(CircleShape)
-                        .background(if (isModelActive) SecondaryMutedCoral else DisabledWarmContent)
+                        .background(statusDotColor)
                 )
+                val overheadStatusText = when {
+                    !isModelActive -> "No Model Active · Import a GGUF model to start"
+                    isGenerating -> "$activeModelName · Generating"
+                    else -> "$activeModelName · Completed"
+                }
                 Text(
-                    text = if (isModelActive) "$activeModelName · Neural Engine ready" else "No Model Active · Import a GGUF model to start",
+                    text = overheadStatusText,
                     style = MaterialTheme.typography.labelSmall,
                     color = WarmMutedText,
                     fontWeight = FontWeight.Medium
@@ -395,11 +356,40 @@ fun ChatScreen(
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             if (inputText.isEmpty()) {
-                                Text(
-                                    text = if (isGenerating) "Model is streaming response..." else "Ask anything...",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = WarmMutedText.copy(alpha = 0.85f)
-                                )
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    if (isGenerating) {
+                                        val pulseAnim = rememberInfiniteTransition(label = "composerPulse")
+                                        val dotAlpha by pulseAnim.animateFloat(
+                                            initialValue = 0.3f,
+                                            targetValue = 1f,
+                                            animationSpec = infiniteRepeatable(
+                                                animation = tween(600),
+                                                repeatMode = RepeatMode.Reverse
+                                            ),
+                                            label = "composerDotAlpha"
+                                        )
+                                        Box(
+                                            modifier = Modifier
+                                                .size(6.dp)
+                                                .clip(CircleShape)
+                                                .background(SecondaryMutedCoral.copy(alpha = dotAlpha))
+                                        )
+                                        Text(
+                                            text = "Generating response...",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = WarmMutedText.copy(alpha = 0.85f)
+                                        )
+                                    } else {
+                                        Text(
+                                            text = "Ask anything...",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = WarmMutedText.copy(alpha = 0.85f)
+                                        )
+                                    }
+                                }
                             }
                             innerTextField()
                         }
@@ -834,15 +824,8 @@ private fun AssistantMessageTurn(
                 )
             }
 
-            // Metronome badge - only show when actively streaming or when valid live inference rate is available
-            val hasRate = !message.tokenRate.isNullOrBlank()
-            if (message.isStreaming || hasRate) {
-                val statusLabel = if (message.isStreaming) {
-                    if (hasRate) "Generating · ${message.tokenRate}" else "Generating..."
-                } else {
-                    "Completed · ${message.tokenRate}"
-                }
-
+            // Generating badge - only show while actively streaming; disappears once final answer is available
+            if (message.isStreaming) {
                 Row(
                     modifier = Modifier
                         .clip(CircleShape)
@@ -851,14 +834,24 @@ private fun AssistantMessageTurn(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
+                    val badgeTransition = rememberInfiniteTransition(label = "badgePulse")
+                    val pulseAlpha by badgeTransition.animateFloat(
+                        initialValue = 0.4f,
+                        targetValue = 1f,
+                        animationSpec = infiniteRepeatable(
+                            animation = tween(500),
+                            repeatMode = RepeatMode.Reverse
+                        ),
+                        label = "badgePulseAlpha"
+                    )
                     Box(
                         modifier = Modifier
                             .size(6.dp)
                             .clip(CircleShape)
-                            .background(SecondaryMutedCoral)
+                            .background(SecondaryMutedCoral.copy(alpha = pulseAlpha))
                     )
                     Text(
-                        text = statusLabel,
+                        text = "Generating",
                         style = MaterialTheme.typography.labelSmall,
                         color = OnSecondaryFixedVariant,
                         fontWeight = FontWeight.Medium
@@ -873,11 +866,47 @@ private fun AssistantMessageTurn(
         Column(
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            val headerMatch = Regex("^###\\s+(.+)$", RegexOption.MULTILINE).find(message.text)
-            val bodyText = if (headerMatch != null) {
-                message.text.replace(headerMatch.value, "").trim()
+            val sanitizedText = if (message.text.contains("<think>")) {
+                message.text.replace(Regex("<think>[\\s\\S]*?</think>"), "").trim()
             } else {
                 message.text
+            }
+
+            if (message.isStreaming && sanitizedText.isBlank() && message.codeSnippet == null) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.padding(vertical = 4.dp)
+                ) {
+                    val streamTransition = rememberInfiniteTransition(label = "streamPulse")
+                    val streamAlpha by streamTransition.animateFloat(
+                        initialValue = 0.3f,
+                        targetValue = 1f,
+                        animationSpec = infiniteRepeatable(
+                            animation = tween(600),
+                            repeatMode = RepeatMode.Reverse
+                        ),
+                        label = "streamAlpha"
+                    )
+                    Box(
+                        modifier = Modifier
+                            .size(8.dp)
+                            .clip(CircleShape)
+                            .background(SecondaryMutedCoral.copy(alpha = streamAlpha))
+                    )
+                    Text(
+                        text = "Generating response...",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = WarmMutedText
+                    )
+                }
+            }
+
+            val headerMatch = Regex("^###\\s+(.+)$", RegexOption.MULTILINE).find(sanitizedText)
+            val bodyText = if (headerMatch != null) {
+                sanitizedText.replace(headerMatch.value, "").trim()
+            } else {
+                sanitizedText
             }
 
             if (headerMatch != null) {

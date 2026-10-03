@@ -250,16 +250,18 @@ class LocalAIViewModel @JvmOverloads constructor(
                 }
             }
 
-            modelManager.engine.generateStream(textToSend, hasImages, audioBytes, temp, maxTokens).collect { chunk ->
+            val enableThinking = appSettings.value.enableThinking
+            modelManager.engine.generateStream(textToSend, hasImages, audioBytes, temp, maxTokens, enableThinking).collect { chunk ->
                 _currentTokensCount.value = chunk.currentTokensCount
-                val (snippet, lang, cleanText) = extractCodeIfPresent(chunk.accumulatedText)
+                val filteredText = stripThinkingProcess(chunk.accumulatedText, chunk.isDone)
+                val (snippet, lang, cleanText) = extractCodeIfPresent(filteredText)
 
                 val updated = assistantMsg.copy(
                     text = cleanText,
                     codeSnippet = snippet,
                     codeLanguage = lang,
                     tokenCount = chunk.currentTokensCount,
-                    tokenRate = if (chunk.tokenRatePerSec > 0) "${chunk.tokenRatePerSec} t/s" else null,
+                    tokenRate = null, // Hide live token counters from UI
                     isStreaming = !chunk.isDone
                 )
                 conversationRepository.updateMessage(updated)
@@ -306,8 +308,38 @@ class LocalAIViewModel @JvmOverloads constructor(
         settingsRepository.updateHistoryEnabled(enabled)
     }
 
+    fun updateEnableThinking(enabled: Boolean) {
+        settingsRepository.updateEnableThinking(enabled)
+    }
+
     fun completeOnboarding() {
         settingsRepository.setOnboardingCompleted(true)
+    }
+
+    private fun stripThinkingProcess(raw: String, isDone: Boolean): String {
+        if (raw.isEmpty()) return ""
+
+        val trimmedLeading = raw.trimStart()
+        if (trimmedLeading.startsWith("<think>")) {
+            if (trimmedLeading.contains("</think>")) {
+                val afterThink = trimmedLeading.substringAfter("</think>").trimStart()
+                return afterThink.replace(Regex("<think>[\\s\\S]*?</think>"), "").trimStart()
+            } else {
+                return "" // Inside <think> block: keep UI completely clean
+            }
+        } else if (trimmedLeading.startsWith("<") && "<think>".startsWith(trimmedLeading)) {
+            return "" // Partial opening tag streaming
+        }
+
+        if (raw.contains("<think>")) {
+            if (raw.contains("</think>")) {
+                return raw.replace(Regex("<think>[\\s\\S]*?</think>"), "").trim()
+            } else {
+                return raw.substringBefore("<think>").trim()
+            }
+        }
+
+        return raw
     }
 
     private fun extractCodeIfPresent(raw: String): Triple<String?, String?, String> {

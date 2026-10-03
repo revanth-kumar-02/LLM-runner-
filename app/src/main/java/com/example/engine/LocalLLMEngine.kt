@@ -35,7 +35,8 @@ interface LocalLLMEngine {
         images: List<ByteArray> = emptyList(),
         audio: ByteArray? = null,
         temperature: Float = 0.7f,
-        maxTokens: Int = 2048
+        maxTokens: Int = 2048,
+        enableThinking: Boolean = false
     ): Flow<GenerationChunk>
 
     fun stopGeneration()
@@ -97,9 +98,10 @@ class DefaultLocalLLMEngine(
         images: List<ByteArray>,
         audio: ByteArray?,
         temperature: Float,
-        maxTokens: Int
+        maxTokens: Int,
+        enableThinking: Boolean
     ): Flow<GenerationChunk> =
-        backend.generateStream(prompt, images, audio, temperature, maxTokens)
+        backend.generateStream(prompt, images, audio, temperature, maxTokens, enableThinking)
 
     override fun stopGeneration() =
         backend.stopGeneration()

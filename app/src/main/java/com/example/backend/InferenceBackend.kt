@@ -46,7 +46,8 @@ interface InferenceBackend {
         images: List<ByteArray> = emptyList(),
         audio: ByteArray? = null,
         temperature: Float = 0.7f,
-        maxTokens: Int = 2048
+        maxTokens: Int = 2048,
+        enableThinking: Boolean = false
     ): Flow<GenerationChunk>
 
     fun stopGeneration()

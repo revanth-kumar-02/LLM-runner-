@@ -143,7 +143,8 @@ class LlamaCppBackend(
         images: List<ByteArray>,
         audio: ByteArray?,
         temperature: Float,
-        maxTokens: Int
+        maxTokens: Int,
+        enableThinking: Boolean
     ): Flow<GenerationChunk> = callbackFlow {
         isCancelled.set(false)
 
@@ -151,7 +152,7 @@ class LlamaCppBackend(
         var count = 0
         val startTime = System.currentTimeMillis()
 
-        Log.i(TAG, "generateStream started for prompt (len=${prompt.length}): '${prompt.take(60)}...'")
+        Log.i(TAG, "generateStream started (enableThinking=$enableThinking) for prompt (len=${prompt.length}): '${prompt.take(60)}...'")
 
         withContext(Dispatchers.IO) {
             if (LlamaCppNative.isAvailable()) {
@@ -159,6 +160,7 @@ class LlamaCppBackend(
                     prompt = prompt,
                     temperature = temperature,
                     maxTokens = maxTokens,
+                    enableThinking = enableThinking,
                     callback = { tokenPiece ->
                         if (isCancelled.get() || !isActive) {
                             Log.i(TAG, "Generation callback: cancelled or inactive")

@@ -58,3 +58,4 @@ val SubtleWarmDivider     = Color(0xFFEDE0DC)  // same as SurfaceContainerHigh â
 val WarmTrackBackground   = Color(0xFFF0E3DF)  // warm beige for slider/progress inactive track
 val DisabledWarmContent   = Color(0xFFBCA7A5)  // warm-tinted disabled icon/text, replaces Material grey
 val WarmIconBackground    = Color(0xFFF5EBE8)  // warm ivory tint for icon container backgrounds
+val StatusActiveGreen     = Color(0xFF388E3C)  // warm muted green for completed/ready status indicator

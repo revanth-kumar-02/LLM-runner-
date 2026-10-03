@@ -343,6 +343,9 @@ fun LocalAIApp(
                                 },
                                 onToggleHistory = { enabled ->
                                     viewModel.toggleConversationHistory(enabled)
+                                },
+                                onToggleThinking = { enabled ->
+                                    viewModel.updateEnableThinking(enabled)
                                 }
                             )
                         }

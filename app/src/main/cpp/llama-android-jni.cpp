@@ -224,6 +224,7 @@ Java_com_example_backend_llama_LlamaCppNative_nativeGenerateStream(
     jstring prompt_jstr,
     jfloat temperature,
     jint max_tokens,
+    jboolean enable_thinking,
     jobject callback
 ) {
     if (!g_context || !g_context->is_loaded.load() || !g_context->model || !g_context->ctx) {
@@ -242,8 +243,8 @@ Java_com_example_backend_llama_LlamaCppNative_nativeGenerateStream(
     std::string user_prompt(prompt_cstr);
     env->ReleaseStringUTFChars(prompt_jstr, prompt_cstr);
 
-    LOGI("nativeGenerateStream: received prompt (length=%zu): '%s'",
-         user_prompt.length(), user_prompt.substr(0, 80).c_str());
+    LOGI("nativeGenerateStream: received prompt (length=%zu, enableThinking=%d): '%s'",
+         user_prompt.length(), enable_thinking, user_prompt.substr(0, 80).c_str());
 
     jclass callback_class = env->GetObjectClass(callback);
     if (!callback_class) {
@@ -274,24 +275,33 @@ Java_com_example_backend_llama_LlamaCppNative_nativeGenerateStream(
     // Apply chat template if available
     std::string formatted_prompt;
     const char * tmpl = llama_model_chat_template(model, nullptr);
+    const char * direct_system_prompt = "You are a helpful assistant. Give concise and direct answers without thinking or internal reasoning.";
+
     if (tmpl) {
-        llama_chat_message msgs[1] = {
-            { "user", user_prompt.c_str() }
-        };
-        int32_t needed_len = llama_chat_apply_template(tmpl, msgs, 1, true, nullptr, 0);
+        std::vector<llama_chat_message> msgs;
+        if (!enable_thinking) {
+            msgs.push_back({ "system", direct_system_prompt });
+        }
+        msgs.push_back({ "user", user_prompt.c_str() });
+
+        int32_t needed_len = llama_chat_apply_template(tmpl, msgs.data(), msgs.size(), true, nullptr, 0);
         if (needed_len > 0) {
             std::vector<char> buf(needed_len + 1);
-            int32_t res = llama_chat_apply_template(tmpl, msgs, 1, true, buf.data(), buf.size());
+            int32_t res = llama_chat_apply_template(tmpl, msgs.data(), msgs.size(), true, buf.data(), buf.size());
             if (res > 0) {
                 formatted_prompt = std::string(buf.data(), res);
-                LOGI("Applied model chat template, formatted prompt length: %zu", formatted_prompt.length());
+                LOGI("Applied model chat template (enable_thinking=%d), formatted prompt length: %zu", enable_thinking, formatted_prompt.length());
             }
         }
     }
 
     if (formatted_prompt.empty()) {
         // Fallback standard chat formatting if no template
-        formatted_prompt = "<|im_start|>user\n" + user_prompt + "<|im_end|>\n<|im_start|>assistant\n";
+        if (!enable_thinking) {
+            formatted_prompt = std::string("<|im_start|>system\n") + direct_system_prompt + "<|im_end|>\n<|im_start|>user\n" + user_prompt + "<|im_end|>\n<|im_start|>assistant\n";
+        } else {
+            formatted_prompt = "<|im_start|>user\n" + user_prompt + "<|im_end|>\n<|im_start|>assistant\n";
+        }
         LOGI("Using ChatML fallback formatting");
     }
 

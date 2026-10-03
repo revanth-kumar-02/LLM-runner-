@@ -122,12 +122,13 @@ class LlamaCppNative {
         prompt: String,
         temperature: Float,
         maxTokens: Int,
+        enableThinking: Boolean = false,
         callback: TokenCallback
     ) {
-        Log.i(TAG, "generateStream called. isLibraryLoaded=$isLibraryLoaded, prompt length=${prompt.length}")
+        Log.i(TAG, "generateStream called. isLibraryLoaded=$isLibraryLoaded, enableThinking=$enableThinking, prompt length=${prompt.length}")
         if (isLibraryLoaded) {
             try {
-                nativeGenerateStream(prompt, temperature, maxTokens, callback)
+                nativeGenerateStream(prompt, temperature, maxTokens, enableThinking, callback)
                 Log.i(TAG, "nativeGenerateStream completed.")
             } catch (t: Throwable) {
                 Log.e(TAG, "nativeGenerateStream crashed", t)
@@ -148,6 +149,7 @@ class LlamaCppNative {
         prompt: String,
         temperature: Float,
         maxTokens: Int,
+        enableThinking: Boolean,
         callback: TokenCallback
     )
 }

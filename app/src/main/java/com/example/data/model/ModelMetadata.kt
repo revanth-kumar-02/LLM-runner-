@@ -103,7 +103,8 @@ data class AppSettings(
     val conversationHistoryEnabled: Boolean = true,
     val themeName: String = "Warm Light",
     val readingTextSize: String = "Medium (16px)",
-    val isOnboardingCompleted: Boolean = false
+    val isOnboardingCompleted: Boolean = false,
+    val enableThinking: Boolean = false
 )
 
 data class HardwareTelemetry(

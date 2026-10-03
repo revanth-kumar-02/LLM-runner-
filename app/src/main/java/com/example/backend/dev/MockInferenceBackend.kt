@@ -108,7 +108,8 @@ class MockInferenceBackend : InferenceBackend {
         images: List<ByteArray>,
         audio: ByteArray?,
         temperature: Float,
-        maxTokens: Int
+        maxTokens: Int,
+        enableThinking: Boolean
     ): Flow<GenerationChunk> = flow {
         isCancelled.set(false)
 

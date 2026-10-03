@@ -40,7 +40,8 @@ class SettingsRepository(context: Context) {
             conversationHistoryEnabled = prefs.getBoolean("history_enabled", true),
             themeName = prefs.getString("theme_name", "Warm Light") ?: "Warm Light",
             readingTextSize = prefs.getString("reading_text_size", "Medium (16px)") ?: "Medium (16px)",
-            isOnboardingCompleted = prefs.getBoolean("onboarding_completed", false)
+            isOnboardingCompleted = prefs.getBoolean("onboarding_completed", false),
+            enableThinking = prefs.getBoolean("enable_thinking", false)
         )
     )
     val settings: StateFlow<AppSettings> = _settings.asStateFlow()
@@ -90,6 +91,11 @@ class SettingsRepository(context: Context) {
     fun updateHistoryEnabled(enabled: Boolean) {
         prefs.edit().putBoolean("history_enabled", enabled).apply()
         _settings.update { it.copy(conversationHistoryEnabled = enabled) }
+    }
+
+    fun updateEnableThinking(enabled: Boolean) {
+        prefs.edit().putBoolean("enable_thinking", enabled).apply()
+        _settings.update { it.copy(enableThinking = enabled) }
     }
 
     fun setActiveModelId(modelId: String?) {
